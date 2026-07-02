@@ -13,8 +13,14 @@ FROM eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
+RUN addgroup -g 1000 spring && adduser -D -u 1000 -G spring spring
+
 COPY --from=build /app/build/libs/shortliner-analytics-*.jar app.jar
+
+RUN chown spring:spring app.jar
+
+USER 1000
 
 EXPOSE 8082
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

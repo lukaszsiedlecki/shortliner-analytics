@@ -42,6 +42,17 @@ analytics:
   aggregation:
     interval-ms: ${AGGREGATION_INTERVAL_MS:300000}
 
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
 logging:
   level:
     com.shortliner.analytics: ${LOG_LEVEL_APP:DEBUG}

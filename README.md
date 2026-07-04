@@ -239,6 +239,6 @@ src/main/java/com/shortliner/analytics/
   service/          Business logic and aggregation
 
 src/main/resources/
-  application.yml           Spring Boot configuration
+  application.properties    Spring Boot configuration
   db/migration/             Flyway SQL scripts
 ```

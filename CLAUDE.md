@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 docker-compose up --build
 ```
 
-Tests use H2 in-memory via the `test` Spring profile (`src/test/resources/application-test.yml`). Kafka autoconfiguration is excluded from tests — no broker needed.
+Tests use H2 in-memory via the `test` Spring profile (`src/test/resources/application-test.properties`). Kafka autoconfiguration is excluded from tests — no broker needed.
 
 Running locally requires PostgreSQL and Kafka. Copy the env vars from the README into a `.env` file; the minimum required are `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, and `KAFKA_BOOTSTRAP_SERVERS`.
 

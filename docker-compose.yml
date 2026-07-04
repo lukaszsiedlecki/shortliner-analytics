@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   shortliner-analytics:
     build: .
@@ -10,7 +8,6 @@ services:
       - .env.local
     networks:
       - shortliner-net
-
 
 networks:
   shortliner-net:

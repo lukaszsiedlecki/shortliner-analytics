@@ -56,3 +56,19 @@ jobs:
               "service": "shortliner-analytics",
               "tag": "sha-${{ needs.build-and-push.outputs.short_sha }}"
             }
+
+  notify-cloud-infra:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch deploy event to cloud-infra
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CLOUD_INFRA_DISPATCH_TOKEN }}
+          repository: lukaszsiedlecki/cloud-infra
+          event-type: deploy-image
+          client-payload: |
+            {
+              "service": "shortliner-analytics",
+              "tag": "sha-${{ needs.build-and-push.outputs.short_sha }}"
+            }

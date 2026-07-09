@@ -38,7 +38,7 @@ spec:
         - name: shortliner-analytics
           # Patched by .github/workflows/deploy.yml on every push to master
           # — never edited by hand.
-          image: ghcr.io/lukaszsiedlecki/shortliner-analytics:sha-89b744e
+          image: ghcr.io/lukaszsiedlecki/shortliner-analytics:sha-76eaac3
           ports:
             - containerPort: 8082
           securityContext:

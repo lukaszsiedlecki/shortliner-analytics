@@ -9,6 +9,8 @@ import com.shortliner.analytics.exception.ShortCodeNotFoundException;
 import com.shortliner.analytics.mapper.AnalyticsMapper;
 import com.shortliner.analytics.repository.AggregatedStatsRepository;
 import com.shortliner.analytics.repository.ClickEventRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -30,13 +32,22 @@ public class AnalyticsService {
     private final ClickEventRepository clickEventRepository;
     private final AggregatedStatsRepository aggregatedStatsRepository;
     private final AnalyticsMapper mapper;
+    private final Counter clickEventsPersistedCounter;
+    private final Counter clickEventsDuplicateCounter;
 
     public AnalyticsService(ClickEventRepository clickEventRepository,
                             AggregatedStatsRepository aggregatedStatsRepository,
-                            AnalyticsMapper mapper) {
+                            AnalyticsMapper mapper,
+                            MeterRegistry meterRegistry) {
         this.clickEventRepository = clickEventRepository;
         this.aggregatedStatsRepository = aggregatedStatsRepository;
         this.mapper = mapper;
+        this.clickEventsPersistedCounter = Counter.builder("click.events.persisted")
+                .description("Click events deduplicated and persisted to click_events")
+                .register(meterRegistry);
+        this.clickEventsDuplicateCounter = Counter.builder("click.events.duplicate")
+                .description("Click events skipped because their event hash already exists")
+                .register(meterRegistry);
     }
 
     @Transactional
@@ -45,11 +56,13 @@ public class AnalyticsService {
 
         if (clickEventRepository.existsByEventHash(eventHash)) {
             log.debug("Duplicate click event detected, skipping: {}", eventHash);
+            clickEventsDuplicateCounter.increment();
             return;
         }
 
         ClickEvent event = mapper.toEntity(dto, eventHash);
         clickEventRepository.save(event);
+        clickEventsPersistedCounter.increment();
         log.debug("Persisted click event for shortCode={}", dto.shortCode());
     }
 

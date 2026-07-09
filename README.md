@@ -52,6 +52,12 @@ AGGREGATION_INTERVAL_MS=300000
 # Logging
 LOG_LEVEL_APP=DEBUG
 LOG_LEVEL_KAFKA=INFO
+
+# Observability
+TRACING_SAMPLING_PROBABILITY=1.0
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
+OTEL_TRACING_EXPORT_ENABLED=false
+LOGGING_STRUCTURED_FORMAT_CONSOLE=
 ```
 
 ### Run Locally
@@ -225,6 +231,60 @@ OpenAPI spec (JSON):
 ```
 http://localhost:8082/api-docs
 ```
+
+## Observability
+
+### Metrics (Prometheus)
+
+Metrics are exposed in Prometheus exposition format at:
+
+```
+http://localhost:8082/actuator/prometheus
+```
+
+Point a Prometheus scrape config at this path (default scrape interval is fine; the endpoint is cheap to hit).
+Standard JVM/HTTP/Kafka-consumer metrics are included automatically via Micrometer, plus these
+service-specific metrics:
+
+| Metric                            | Type    | Description                                                    |
+|------------------------------------|---------|------------------------------------------------------------------|
+| `click_events_received_total`      | counter | Click events received from the `shortliner.clicks` Kafka topic  |
+| `click_events_persisted_total`     | counter | Click events deduplicated and persisted to `click_events`       |
+| `click_events_duplicate_total`     | counter | Click events skipped because their event hash already exists    |
+| `click_events_processing_errors_total` | counter | Click events that failed processing and were not acknowledged |
+| `aggregation_duration_seconds`     | timer   | Duration of each scheduled daily-stats aggregation run          |
+| `aggregation_entries_processed_total` | counter | Rows upserted into `aggregated_stats` per aggregation run     |
+
+All metrics carry an `application=shortliner-analytics` tag so they can be distinguished from other services in a
+shared Grafana dashboard.
+
+Other actuator endpoints exposed for monitoring: `/actuator/health` (liveness/readiness probes) and
+`/actuator/metrics`.
+
+### Tracing
+
+Distributed tracing uses Micrometer Tracing with the OpenTelemetry bridge, exporting spans via OTLP/HTTP. Point
+`OTEL_EXPORTER_OTLP_ENDPOINT` at your collector (Tempo, Jaeger, an OTel Collector, etc.) -- it defaults to
+`http://localhost:4318/v1/traces`. Export is opt-in: set `OTEL_TRACING_EXPORT_ENABLED=true` once a collector is
+actually reachable, otherwise spans are generated (for log correlation) but not shipped anywhere. Sampling rate is
+controlled by `TRACING_SAMPLING_PROBABILITY` (`1.0` = trace everything; lower this in high-traffic environments).
+
+Spans are created for incoming HTTP requests, incoming Kafka messages (this service only consumes), and the
+scheduled aggregation job. If the upstream producer of `shortliner.clicks` also propagates trace context (the
+`shortliner` service does, via `spring.kafka.template.observation-enabled=true`), consumption of a click event
+continues the same trace, giving an end-to-end view across services.
+
+This mirrors the observability setup in the sibling `shortliner` service -- same dependencies, same env var
+names, same opt-in export gate -- so a shared Prometheus/Grafana/Tempo stack can scrape and correlate both
+services identically.
+
+### Logs
+
+Every log line includes the active trace and span ID via MDC (`[shortliner-analytics,<traceId>,<spanId>]`) once
+tracing is on the classpath, with no extra config needed. By default logs are plain text for a readable local
+console; set `LOGGING_STRUCTURED_FORMAT_CONSOLE=logstash` or `ecs` to switch to structured JSON output for
+ingestion into a log aggregator (e.g. Loki, ELK). Log levels are controlled by `LOG_LEVEL_APP` and
+`LOG_LEVEL_KAFKA`.
 
 ## Project Structure
 

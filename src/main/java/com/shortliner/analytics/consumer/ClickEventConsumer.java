@@ -32,16 +32,20 @@ public class ClickEventConsumer {
 
     @KafkaListener(topics = "shortliner.clicks", containerFactory = "kafkaListenerContainerFactory")
     public void consume(@Payload ClickEventDto event, Acknowledgment ack) {
-        log.info("Received click event: shortCode={}, ip={}", event.shortCode(), event.ip());
+        log.atInfo().addKeyValue("shortCode", event.shortCode()).log("Received click event");
         clickEventsReceivedCounter.increment();
         try {
             analyticsService.processClickEvent(event);
             ack.acknowledge();
-            log.debug("Successfully processed and acknowledged click event for shortCode={}", event.shortCode());
+            log.atDebug().addKeyValue("shortCode", event.shortCode())
+                    .log("Successfully processed and acknowledged click event");
         } catch (Exception e) {
             clickEventsProcessingErrorCounter.increment();
-            log.error("Error processing click event for shortCode={}: {}",
-                    event.shortCode(), e.getMessage(), e);
+            log.atError()
+                    .addKeyValue("shortCode", event.shortCode())
+                    .addKeyValue("eventTimestamp", event.timestamp())
+                    .setCause(e)
+                    .log("Error processing click event: {}", e.getMessage());
             throw e;
         }
     }

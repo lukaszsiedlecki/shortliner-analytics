@@ -2,13 +2,23 @@ package com.shortliner.analytics.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+/**
+ * Standard Spring MVC exceptions (unknown path, unsupported method, bad request, ...) are mapped to
+ * their proper 4xx status by {@link ResponseEntityExceptionHandler}; only truly unexpected errors
+ * fall through to the generic 500 handler.
+ */
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -27,5 +37,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problem.setTitle("Internal Server Error");
         return problem;
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
+                                                             HttpStatusCode statusCode, WebRequest request) {
+        if (statusCode.is5xxServerError()) {
+            log.error("Request failed with {}: {}", statusCode.value(), ex.getMessage(), ex);
+        } else {
+            log.debug("Request rejected with {}: {}", statusCode.value(), ex.getMessage());
+        }
+        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 }

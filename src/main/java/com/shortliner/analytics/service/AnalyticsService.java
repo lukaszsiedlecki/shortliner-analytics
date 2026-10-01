@@ -55,7 +55,8 @@ public class AnalyticsService {
         String eventHash = computeEventHash(dto);
 
         if (clickEventRepository.existsByEventHash(eventHash)) {
-            log.debug("Duplicate click event detected, skipping: {}", eventHash);
+            log.atDebug().addKeyValue("shortCode", dto.shortCode()).addKeyValue("eventHash", eventHash)
+                    .log("Duplicate click event detected, skipping");
             clickEventsDuplicateCounter.increment();
             return;
         }
@@ -63,7 +64,8 @@ public class AnalyticsService {
         ClickEvent event = mapper.toEntity(dto, eventHash);
         clickEventRepository.save(event);
         clickEventsPersistedCounter.increment();
-        log.debug("Persisted click event for shortCode={}", dto.shortCode());
+        log.atDebug().addKeyValue("shortCode", dto.shortCode()).addKeyValue("eventHash", eventHash)
+                .log("Persisted click event");
     }
 
     @Transactional(readOnly = true)

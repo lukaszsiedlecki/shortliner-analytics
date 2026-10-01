@@ -39,10 +39,13 @@ This is a read-only analytics consumer microservice in the Shortliner URL-shorte
 - `click_events` — raw event log, one row per deduplicated redirect event
 - `aggregated_stats` — pre-aggregated daily totals (click count + unique visitors per short code per day), written only by the scheduler
 
-**REST API** (`AnalyticsController`) exposes three read-only endpoints:
+**REST API** (`AnalyticsController`) exposes four read-only endpoints:
 - `GET /api/analytics/{shortCode}/daily` — paginated daily stats from `aggregated_stats`
 - `GET /api/analytics/{shortCode}/summary` — lifetime totals computed live from `click_events`
-- `GET /api/analytics/user/{userId}` — paginated per-short-code totals for a user, computed live via JPQL `GROUP BY`
+- `GET /api/analytics/me` — paginated per-short-code totals for the caller (JWT `sub`), computed live via JPQL `GROUP BY`
+- `GET /api/analytics/user/{userId}` — same, for any user; `admin` role only
+
+**Security:** OAuth2 resource server for Keycloak (`SecurityConfig`). `shortliner-gateway` relays the access token; `realm_access.roles` → `ROLE_<name>`. Per-link `daily`/`summary` and actuator health/prometheus are anonymous; everything else needs a token. JWKS URI + explicit issuer check (`KEYCLOAK_JWK_SET_URI`, `KEYCLOAK_ISSUER_URI`) — not `issuer-uri`, which can't resolve `keycloak.local` from pods.
 
 `ShortCodeNotFoundException` → 404 via `GlobalExceptionHandler`.
 

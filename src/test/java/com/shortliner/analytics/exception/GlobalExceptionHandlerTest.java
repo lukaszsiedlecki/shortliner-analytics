@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,9 +22,15 @@ class GlobalExceptionHandlerTest {
     private MockMvc mockMvc;
 
     @Test
-    void unknownPathReturns404() throws Exception {
-        mockMvc.perform(get("/does-not-exist"))
+    void unknownPathReturns404ForAuthenticatedCaller() throws Exception {
+        mockMvc.perform(get("/does-not-exist").with(jwt()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void unknownPathReturns401ForAnonymousCaller() throws Exception {
+        mockMvc.perform(get("/does-not-exist"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

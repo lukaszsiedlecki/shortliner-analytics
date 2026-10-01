@@ -49,6 +49,10 @@ KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 # Analytics
 AGGREGATION_INTERVAL_MS=300000
 
+# Auth (Keycloak realm "shortliner"; in-cluster use the keycloak.keycloak.svc.cluster.local JWKS URL)
+KEYCLOAK_JWK_SET_URI=http://keycloak.local/realms/shortliner/protocol/openid-connect/certs
+KEYCLOAK_ISSUER_URI=http://keycloak.local/realms/shortliner
+
 # Logging
 LOG_LEVEL_APP=DEBUG
 LOG_LEVEL_KAFKA=INFO
@@ -109,7 +113,20 @@ ignored.
 
 ## API Reference
 
-Base URL: `http://localhost:8082`
+Base URL: `http://localhost:8082` (through the gateway: `/api/analytics/...` prefixed again, e.g.
+`/api/analytics/api/analytics/me`).
+
+The service is an OAuth2 resource server: callers authenticate with a Keycloak access token
+(`Authorization: Bearer <JWT>`, relayed by `shortliner-gateway`). The user ID is always the token's `sub`.
+
+| Endpoint | Access |
+|---|---|
+| `GET /api/analytics/{shortCode}/daily` | anonymous |
+| `GET /api/analytics/{shortCode}/summary` | anonymous |
+| `GET /api/analytics/me` | authenticated user |
+| `GET /api/analytics/user/{userId}` | `admin` role |
+| `/actuator/health/**`, `/actuator/prometheus` | anonymous |
+| anything else | authenticated |
 
 ### Get Daily Statistics
 
@@ -179,16 +196,17 @@ curl -s "http://localhost:8082/api/analytics/abc123/summary" | jq
 
 ---
 
-### Get User Analytics
+### Get My Analytics
 
-Returns paginated analytics across all short URLs owned by a user.
+Returns paginated analytics across all short URLs owned by the authenticated caller (token `sub`).
+Admins can query any user via `GET /api/analytics/user/{userId}` (same response shape).
 
 ```
-GET /api/analytics/user/{userId}
+GET /api/analytics/me
 ```
 
 ```bash
-curl -s "http://localhost:8082/api/analytics/user/550e8400-e29b-41d4-a716-446655440000?page=0&size=5" | jq
+curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8082/api/analytics/me?page=0&size=5" | jq
 ```
 
 ```json
@@ -214,7 +232,6 @@ curl -s "http://localhost:8082/api/analytics/user/550e8400-e29b-41d4-a716-446655
 
 | Parameter | Type  | Default | Description           |
 |-----------|-------|---------|-----------------------|
-| `userId`  | path  | --      | The user UUID         |
 | `page`    | query | `0`     | Page number (0-based) |
 | `size`    | query | `20`    | Results per page      |
 

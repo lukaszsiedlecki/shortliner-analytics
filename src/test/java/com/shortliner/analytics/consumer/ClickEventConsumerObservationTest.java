@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
@@ -38,7 +38,7 @@ class ClickEventConsumerObservationTest {
     void consumedRecordIsRecordedByListenerObservation() {
         Map<String, Object> props = KafkaTestUtils.producerProps(broker);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
         ClickEventDto event = new ClickEventDto("abc123", "user-1", Instant.now(), "10.0.0.1", "junit", null);
 
         try (KafkaProducer<String, ClickEventDto> producer = new KafkaProducer<>(props)) {

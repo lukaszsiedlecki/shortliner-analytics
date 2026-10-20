@@ -6,7 +6,7 @@ Consumes redirect events from Kafka, persists them in PostgreSQL, and exposes a 
 ## Tech Stack
 
 - Java 25
-- Spring Boot 3.5
+- Spring Boot 4.1
 - Spring Data JPA + Hibernate
 - PostgreSQL 17
 - Apache Kafka

@@ -71,7 +71,8 @@ public class AggregationService {
 
         for (Object[] row : dailyData) {
             String shortCode = (String) row[0];
-            LocalDate date = ((java.sql.Date) row[1]).toLocalDate();
+            // Hibernate 7 maps native DATE columns to LocalDate (previously java.sql.Date)
+            LocalDate date = (LocalDate) row[1];
             long clickCount = ((Number) row[2]).longValue();
             long uniqueIps = ((Number) row[3]).longValue();
 
